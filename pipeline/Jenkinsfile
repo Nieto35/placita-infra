@@ -1,0 +1,59 @@
+pipeline {
+    agent {
+        node {
+            label 'built-in'
+            customWorkspace '/var/www/placita-infra'
+        }
+    }
+
+    stages {
+        stage('Clean') {
+            steps {
+                sh '''
+                    echo "🧹 Limpiando directorio..."
+                    rm -rf ./* || true
+                    rm -rf ./.[!.]* || true
+                    echo "✅ Limpio"
+                '''
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Nieto35/placita-infra.git',
+                    credentialsId: 'github-token-nieto35'
+            }
+        }
+
+        stage('Deploy with Docker Compose') {
+            steps {
+                sh '''
+                    echo "📂 Directorio: $(pwd)"
+
+                    [ -f docker-compose.yml ] || { echo "❌ docker-compose.yml no existe"; exit 1; }
+
+                    # up -d es idempotente: no reinicia lo que no cambió,
+                    # no borra los datos de la base (el volumen persiste).
+                    docker compose up -d
+
+                    echo "⏳ Esperando a que PostgreSQL esté listo..."
+                    sleep 10
+
+                    docker compose ps
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 Infra compartida desplegada!"
+            sh 'docker exec placita-db pg_isready -U postgres || echo "⚠️  Postgres no responde aún"'
+        }
+        failure {
+            echo "❌ Error desplegando infra"
+            sh 'docker compose logs --tail=50 || docker-compose logs --tail=50 || true'
+        }
+    }
+}
