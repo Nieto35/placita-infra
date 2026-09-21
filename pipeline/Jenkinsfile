@@ -35,12 +35,12 @@ pipeline {
 
                     # up -d es idempotente: no reinicia lo que no cambió,
                     # no borra los datos de la base (el volumen persiste).
-                    docker compose up -d
+                    docker-compose up -d
 
                     echo "⏳ Esperando a que PostgreSQL esté listo..."
                     sleep 10
 
-                    docker compose ps
+                    docker-compose ps
                 '''
             }
         }
@@ -53,7 +53,7 @@ pipeline {
         }
         failure {
             echo "❌ Error desplegando infra"
-            sh 'docker compose logs --tail=50 || docker-compose logs --tail=50 || true'
+            sh 'docker-compose logs --tail=50 || true'
         }
     }
 }
