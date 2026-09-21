@@ -6,6 +6,10 @@ pipeline {
         }
     }
 
+    options {
+        skipDefaultCheckout()
+    }
+
     stages {
         stage('Clean') {
             steps {
